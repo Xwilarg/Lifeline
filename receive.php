@@ -9,7 +9,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $q->bindValue(1, $_POST["id"]);
         $q->bindValue(2, $_POST["token"]);
         $results = $q->execute();
-        echo "ERR: " . $db->lastErrorMsg();
         if (!$results) {
             header("HTTP/1.1 400");
         } else {
