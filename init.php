@@ -2,7 +2,6 @@
 
 $db = new SQLite3('lifeline.db');
 
-
 $db->query("CREATE TABLE IF NOT EXISTS lifelines (key NUMBER PRIMARY KEY, name VARCHAR(255) NOT NULL, target VARCHAR(255) NOT NULL, id VARCHAR(40), token VARCHAR(255) NOT NULL, lastInsert DATETIME NOT NULL)");
 foreach (json_decode(file_get_contents("config.json"), true) as $index=>$elem) {
     if (!$db->query("SELECT * FROM lifelines WHERE key = " . $index)->fetchArray()) {
