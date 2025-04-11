@@ -3,7 +3,7 @@
 $db = new SQLite3('lifeline.db');
 
 $lifelines = [];
-$results = $db->query("SELECT name, id, lastInsert FROM lifelines");
+$results = $db->query("SELECT name, id, lastInsert, data FROM lifelines");
 while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
     array_push($lifelines, $row);
 }

@@ -1,14 +1,15 @@
 <?php
 $db = new SQLite3('lifeline.db');
 
-$results = $db->query("SELECT target, token, name from lifelines");
+$results = $db->query("SELECT target, token, name, path from lifelines");
 
 $rows = [];
 while ($row = $results->fetchArray(SQLITE3_ASSOC)) {
     array_push($rows, [
         'token' => $row["token"],
         'target' => $row["target"],
-        'name' => $row["name"]
+        'name' => $row["name"],
+        'path' => $row["path"]
     ]);
 }
 
@@ -18,7 +19,8 @@ foreach ($rows as $row) {
 
     $post = [
         'token' => $row["token"],
-        'id' => $id
+        'id' => $id,
+        'data' => $row["path"] == NULL ? NULL : file_get_contents($row["path"])
     ];
     
     $ch = curl_init($row["target"]);
@@ -27,18 +29,33 @@ foreach ($rows as $row) {
     curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
     curl_setopt($ch, CURLOPT_HEADER, true);  
     
-    curl_exec($ch);
+    $res = curl_exec($ch);
     $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    
-    curl_close($ch);
-    
-    $answerId = $httpcode === 204 ? $id : NULL;
-    $q = $db->prepare("UPDATE lifelines set id = ?, lastInsert = CURRENT_TIMESTAMP where token = ?");
+    $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+
+    if ($httpcode === 200) {
+        $body = substr($res, $header_size);
+        $answerId = $id;
+    } else if ($httpcode === 204) {
+        $body = NULL;
+        $answerId = $id;
+    } else {
+        $body = NULL;
+        $answerId = NULL;
+    }
+
+    $q = $db->prepare("UPDATE lifelines set id = ?, lastInsert = CURRENT_TIMESTAMP, data = ? where token = ?");
     $q->bindValue(1, $answerId);
     $q->bindValue(2, $row["token"]);
+    $q->bindValue(3, $body);
     $results = $q->execute();
+    
+    curl_close($ch);
 
-    $finalRes[$row["name"]] = $answerId;
+    $finalRes[$row["name"]] = [
+        "id" => $answerId,
+        "data" => $body === NULL ? NULL : json_decode($body)
+    ];
 }
 
 header('Content-type: application/json');
