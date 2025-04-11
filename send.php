@@ -46,8 +46,8 @@ foreach ($rows as $row) {
 
     $q = $db->prepare("UPDATE lifelines set id = ?, lastInsert = CURRENT_TIMESTAMP, data = ? where token = ?");
     $q->bindValue(1, $answerId);
-    $q->bindValue(2, $row["token"]);
-    $q->bindValue(3, $body);
+    $q->bindValue(2, $body);
+    $q->bindValue(3, $row["token"]);
     $results = $q->execute();
     
     curl_close($ch);
