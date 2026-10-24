@@ -1,5 +1,5 @@
 [{
-    "name" "Name",
+    "name": "Name",
     "token": "unique-token-0000",
     "target": "https://example.org/lifeline/receive.php",
     "path": "./../data/optional-data.json"
