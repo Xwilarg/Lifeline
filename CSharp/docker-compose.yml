@@ -1,0 +1,8 @@
+services:
+  lifeline:
+    image: ghcr.io/xwilarg/lifeline:latest
+    ports:
+      - "6842:8080"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
