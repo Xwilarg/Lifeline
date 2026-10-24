@@ -14,6 +14,7 @@ builder.Services.AddSingleton(new JsonSerializerOptions()
     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
 });
 builder.Services.AddDbContext<Database>();
+builder.Services.AddHttpClient();
 
 builder.Services.AddCors(options =>
 {
