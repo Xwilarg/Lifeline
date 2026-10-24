@@ -1,5 +1,6 @@
 using Lifeline.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -48,13 +49,13 @@ namespace Lifeline.Controllers
             {
                 Id = x.Id,
                 Name = x.Name,
-                Data = x.Path != null && System.IO.File.Exists(x.Path) ? System.IO.File.ReadAllText(x.Path) : null,
-                LastInsert = x.LastInsert
+                Data = x.Data,
+                LastInsert = x.LastInsert.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             }));
         }
 
         [HttpPost("receive")]
-        public ActionResult Receive([FromBody] LifelineRequest body)
+        public ActionResult Receive([FromForm] LifelineRequest body)
         {
             var target = database.Lifelines.FirstOrDefault(x => body.Token == x.Token);
             if (target == null)
@@ -67,27 +68,38 @@ namespace Lifeline.Controllers
             target.LastInsert = DateTime.UtcNow;
             database.SaveChanges();
 
-            if (target.Path != null && System.IO.File.Exists(target.Path)) return new JsonResult(System.IO.File.ReadAllText(target.Path));
+            if (target.Path != null && System.IO.File.Exists(target.Path)) return StatusCode(StatusCodes.Status200OK, System.IO.File.ReadAllText(target.Path));
             return StatusCode(StatusCodes.Status204NoContent);
         }
 
         [HttpPost("send")]
         public async Task<ActionResult> Send()
         {
-            var tasks = database.Lifelines.ToList().Select(async x =>
+            var lifelines = database.Lifelines.ToList();
+            var tasks = lifelines.Select(async x =>
             {
                 var id = RandomNumberGenerator.GetString("abcdefghijklmnopqrstuvwxyz0123456789", 20);
-                using var res = await client.PostAsJsonAsync(x.Target, new LifelineRequest()
+                var data = x.Path != null && System.IO.File.Exists(x.Path) ? System.IO.File.ReadAllText(x.Path) : null;
+                var fields = new Dictionary<string, string> { ["id"] = id, ["token"] = x.Token };
+                if (data != null) fields.Add("data", data);
+
+                try
                 {
-                    Id = id,
-                    Token = x.Token,
-                    Data = x.Path != null && System.IO.File.Exists(x.Path) ? System.IO.File.ReadAllText(x.Path) : null
-                }, opts);
-                if (res.StatusCode == HttpStatusCode.OK)
-                {
-                    return (id, x.Token, JsonSerializer.Deserialize<string>(await res.Content.ReadAsStringAsync()));
+                    using var res = await client.PostAsync(x.Target, new FormUrlEncodedContent(fields));
+                    if (res.StatusCode == HttpStatusCode.OK)
+                    {
+                        return ((string?)id, x.Token, (string?)await res.Content.ReadAsStringAsync());
+                    }
+                    if (res.StatusCode == HttpStatusCode.NoContent)
+                    {
+                        return ((string?)id, x.Token, null);
+                    }
+                    return (null, x.Token, null);
                 }
-                return (id, x.Token, null);
+                catch
+                {
+                    return (null, x.Token, null);
+                }
             });
 
             var results = await Task.WhenAll(tasks);
@@ -97,11 +109,17 @@ namespace Lifeline.Controllers
                 var curr = database.Lifelines.First(x => x.Token == r.Token);
                 curr.Data = r.Item3;
                 curr.LastInsert = DateTime.UtcNow;
-                curr.Id = r.id;
+                curr.Id = r.Item1;
             }
             database.SaveChanges();
 
-            return StatusCode(StatusCodes.Status204NoContent);
+            return StatusCode(StatusCodes.Status200OK, lifelines.ToDictionary(x => x.Name, x => new LifelineResponse()
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Data = x.Data,
+                LastInsert = x.LastInsert.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            }));
         }
     }
 }
