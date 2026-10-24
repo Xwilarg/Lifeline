@@ -31,7 +31,8 @@ namespace Lifeline.Controllers
                         Id = null,
                         Token = c.Token,
                         LastInsert = DateTime.UtcNow,
-                        Path = c.Path
+                        Path = c.Path,
+                        Data = null
                     });
                 }
             }
@@ -39,6 +40,7 @@ namespace Lifeline.Controllers
 
             return StatusCode(StatusCodes.Status201Created);
         }
+
         [HttpPost("status")]
         public ActionResult Get()
         {
@@ -46,9 +48,27 @@ namespace Lifeline.Controllers
             {
                 Id = x.Id,
                 Name = x.Name,
-                Data = x.Path != null && System.IO.File.Exists(x.Path) ? System.IO.File.ReadAllText(x.Path),
+                Data = x.Path != null && System.IO.File.Exists(x.Path) ? System.IO.File.ReadAllText(x.Path) : null,
                 LastInsert = x.LastInsert
             }));
+        }
+
+        [HttpPost("receive")]
+        public ActionResult Receive([FromBody] LifelineRequest body)
+        {
+            var target = database.Lifelines.FirstOrDefault(x => body.Token == x.Token);
+            if (target == null)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized, "Invalid token");
+            }
+
+            using var transaction = database.Database.BeginTransaction();
+            target.Data = body.Data;
+            target.Id = body.Id;
+            transaction.Commit();
+
+            if (target.Path != null && System.IO.File.Exists(target.Path)) return new JsonResult(System.IO.File.ReadAllText(target.Path));
+            return StatusCode(StatusCodes.Status204NoContent);
         }
     }
 }
