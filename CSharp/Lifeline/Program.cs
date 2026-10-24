@@ -30,10 +30,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    using var scope = app.Services.CreateScope();
+    if (!Directory.Exists(PathHelper.DataPath)) Directory.CreateDirectory(PathHelper.DataPath);
+    var db = scope.ServiceProvider.GetRequiredService<Database>();
+    db.Database.EnsureCreated();
 }
 
 if (app.Environment.IsDevelopment())

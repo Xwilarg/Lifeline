@@ -9,10 +9,6 @@ public class Database : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
-        if (!PathHelper.IsDebug)
-        {
-            if (Directory.Exists("/data/")) Directory.CreateDirectory("/data/");
-        }
         options.UseSqlite(
             PathHelper.IsDebug
             ? $"Data Source=Sqlite.db"
