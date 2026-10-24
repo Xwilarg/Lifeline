@@ -1,6 +1,7 @@
 services:
   lifeline:
     image: ghcr.io/xwilarg/lifeline:latest
+    user: "1000:1000"
     ports:
       - "6842:8080"
     volumes:

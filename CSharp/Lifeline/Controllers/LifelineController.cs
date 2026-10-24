@@ -42,7 +42,7 @@ namespace Lifeline.Controllers
             return StatusCode(StatusCodes.Status201Created);
         }
 
-        [HttpPost("status")]
+        [HttpGet("status")]
         public ActionResult Get()
         {
             return StatusCode(StatusCodes.Status200OK, database.Lifelines.Select(x => new LifelineResponse()

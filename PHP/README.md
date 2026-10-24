@@ -1,7 +1,19 @@
 # Lifeline
 Create a link between 2 websites
 
-## Requirements
+## Docker (C#) requirements
+- Copy CSharp/docker-compose.yml in your server
+- Make a data folder
+- Inside data/, create a config.json file (see config.json.example)
+- Go back at the root, run `docker compose up
+- Add the config to your web server (example with nginx)
+```nginx
+location /lifeline/ {
+    proxy_pass http://localhost:6842;
+}
+```
+
+## PHP Requirements
 PHP modules:
 - sqlite3
 - curl
